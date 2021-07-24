@@ -1,3 +1,4 @@
+import argparse
 import functools
 import gc
 import os
@@ -5,14 +6,13 @@ import numpy as np
 import torch
 from torch import optim
 
-from dazle_model import Dazle
 from misc import data_utils
 from misc.data_loader import ZSLDatasetEmbeddings
 from misc.data_utils import load_attribute_descriptors, load_pickle, average_over_folds
 from misc.log_utils import Logger
 from misc.train_eval_utils import train_model, eval_expandable_model, get_trainable_params
-from zsl_feature_composition.models import DazleFakeComposerUnlimited
-from zsl_feature_composition.train_eval_CC import is_exp_done, log_val_res_pkl
+from main_code.models import DazleFakeComposerUnlimited
+from main_code.reproduce import is_exp_done, log_val_res_pkl
 
 
 def validate_backbones(model_constructor, backbones, folds, dataset_name, data_loader_options,
@@ -133,8 +133,6 @@ def check_backbones(dataset_name, backbones, train_batch_size=32, gpu_idx=0):
     use_dropout = False
     dropout_rate = 0.05
 
-    do_validation = True
-
     vis_drop_rate, num_fake_in_batch = 0., 0
 
     pre_lr = 1e-4
@@ -173,30 +171,38 @@ def check_backbones(dataset_name, backbones, train_batch_size=32, gpu_idx=0):
     save_folder = f'./final_results/check_backbones/'
     metrics_headers = ['acc_seen', 'acc_novel', 'H', 'acc_zs', 'supervised_acc', 'bias', 'auc']
 
-    # validation
-    if do_validation:
-        val_results = validate_backbones(model_constructor, backbones, [1, 2, 3], dataset_name,
-                                         data_loader_options, num_epochs=30,
-                                         run_tag=experiment_desc,
-                                         log_file=f'log_composer_{attribute_type}_',
-                                         exp_metrics=metrics_headers, optimizers_options=optimizer_options,
-                                         save_folder=save_folder)
+    # validation -- runs the training on 3 folds
+    val_results = validate_backbones(model_constructor, backbones, [1, 2, 3], dataset_name,
+                                     data_loader_options, num_epochs=30,
+                                     run_tag=experiment_desc,
+                                     log_file=f'log_composer_{attribute_type}_',
+                                     exp_metrics=metrics_headers, optimizers_options=optimizer_options,
+                                     save_folder=save_folder)
 
-        best_hyper, best_H_val, val_res = val_results
-        best_bias = np.mean(val_res[best_hyper]['bias'])
-        print(f'best bias is: {best_bias}')
-        torch.cuda.empty_cache()
+    best_hyper, best_H_val, val_res = val_results
+    best_bias = np.mean(val_res[best_hyper]['bias'])
+    print(f'best bias is: {best_bias}')
+    torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':
-    feature_types = ['densenet_201_D2', 'densenet_201_D3', 'densenet_201_D4', 'densenet_201_T1',
-                     'densenet_201_T2', 'densenet_201_T3', 'resnet_101_L1', 'resnet_101_L2', 'resnet_101_L3',
+    feature_types = ['densenet_201_T1', 'densenet_201_D2', 'densenet_201_T2', 'densenet_201_D3',
+                     'densenet_201_T3', 'densenet_201_D4', 'resnet_101_L1', 'resnet_101_L2', 'resnet_101_L3',
                      'resnet_101_L4']
 
-    # feature_types = ['densenet_201_T3']
+    parser = argparse.ArgumentParser(description='Welcome to the backbone experiment reproduction script.'
+                                                 'You can choose the dataset to train on and the backbone to use with '
+                                                 'flags -d and -f respectively.'
+                                                 'results will be at ./final_results/check_backbones/')
 
-    # check_backbones('CUB', feature_types, train_batch_size=32, gpu_idx=1)
-    # data_utils.feature_and_labels_cache = {}
-    # gc.collect()
-    # torch.cuda.empty_cache()
-    check_backbones('AWA2', feature_types, train_batch_size=32, gpu_idx=1)
+    parser.add_argument('-d', dest='dataset', type=str, choices=['CUB', 'AWA2', 'SUN'], help='Dataset Name to use.')
+    parser.add_argument('-f', dest='features', type=str, choices=feature_types,
+                        help='backbone to use.')
+
+    parser.add_argument('-btr', dest='train_batch_size', default=32, type=int, help='training batch size')
+
+    parser.add_argument('-g', dest='gpu_idx', default=0, type=int,
+                        help='gpu index (if no gpu is available will run on cpu)')
+
+    opts = parser.parse_args()
+    check_backbones(opts.dataset, opts.features, train_batch_size=opts.train_batch_size, gpu_idx=opts.gpu_idx)
