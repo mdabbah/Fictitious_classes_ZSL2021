@@ -3,7 +3,7 @@
 import argparse
 import os
 from misc.backbones import build_backbone
-from misc.project_paths import BASE_DIR, FT_DIR, DATASET_DIR
+from misc.project_paths import DATA_BASE_DIR, FT_DIR, DATASET_DIR
 
 import torch
 from torchvision import transforms
@@ -22,8 +22,8 @@ class CustomedDataset(Dataset):
     def __init__(self, dataset_name, transform=None):
         self.dataset_name = dataset_name
 
-        img_dir = os.path.join(NFS_path, f'dataset/{dataset_name}/')
-        file_paths = os.path.join(NFS_path, f'dataset/xlsa17/data/{dataset_name}/res101.mat')
+        img_dir = os.path.join(DATA_BASE_DIR, f'{dataset_name}/')
+        file_paths = os.path.join(DATA_BASE_DIR, f'xlsa17/data/{dataset_name}/res101.mat')
 
         self.matcontent = sio.loadmat(file_paths)
         self.image_files = np.squeeze(self.matcontent['image_files'])
@@ -99,8 +99,8 @@ def main(dataset_name, feature_layers, batch_size=96, gpu_idx=0):
         test_unseen_loc = matcontent['test_unseen_loc'].squeeze() - 1
 
         print('save w2v_att')
-        save_path = os.path.join(BASE_DIR,
-                                 f'dataset/precomputed_features/{dataset_name}/feature_map_{feature_type}_{attribute_type}_{dataset_name}.hdf5')
+        save_path = os.path.join(DATA_BASE_DIR,
+                                 f'precomputed_features/{dataset_name}/feature_map_{feature_type}_{attribute_type}_{dataset_name}.hdf5')
         save_dir = os.path.dirname(save_path)
         os.makedirs(save_dir, exist_ok=True)
 

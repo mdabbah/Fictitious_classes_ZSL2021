@@ -5,62 +5,7 @@ import h5py
 from scipy.io import loadmat, savemat
 import numpy as np
 
-from misc.project_paths import DATASET_DIR, BASE_DIR
-
-
-def load_data(dataset_name: str, data_type: str, is_proposed_split: bool = True, attributes_type: str = 'original',
-              features_type: str = 'resnet101'):
-    """
-    load the wanted dataset.
-    :param dataset_name: can be: 'AWA1' 'AWA2' 'CUB' 'SUN'
-    :param data_type: can be: 'train' 'test_seen' 'test_unseen'
-    :param is_proposed_split: true to use the proposed seen unseen split
-    proposed by Y Xian et al https://ieeexplore.ieee.org/abstract/document/8413121
-    else uses the standart split.
-    :param attributes_type: use EXEM attributes developed by Soravit Changpinyo, Wei-Lun Chao et al.
-    https://arxiv.org/pdf/1812.06423.pdf
-    :param features_type: which network features to use: 'resnet' 'googleNet'
-    :return:
-    features - shape: (#samples, features_dim) features of the data of the requested kind (train , test, test generalized)
-    labels   - shape: (#samples,)  labels of the data of the requested kind (train , test, test generalized)
-    class_features - shape: (#classes, attributes_vec_dim) row i has the attributes of class i
-    class_order - the order of the classes for cross validation (see: cross_validation_split)
-    """
-    split = 'PS' if is_proposed_split else 'SS'
-    atts_path = f'../dataset/data/{dataset_name}_{split}_resnet.mat'
-
-    atts_and_splits = loadmat(atts_path)
-
-    features_type_orig = features_type
-    features_type = {'resnet101': 'res101', 'densenet121': 'dense121', 'densenet201': 'dense201'}[features_type]
-    features_and_labels_path = f'../dataset/new_version/{dataset_name}/{features_type}.mat'
-    data = loadmat(features_and_labels_path)
-
-    samples_features = data['features'].T
-    samples_labels = data['labels'] - 1  # matlab starts with 1 python with 0
-
-    class_order = atts_and_splits[
-                      'class_order'] - 1  # type: np.ndarray # used for spliting training data for cross validiatoin
-
-    train_samples_loc = atts_and_splits['tr_loc'] - 1  # type: np.ndarray
-    test_samples_unseen_loc = atts_and_splits['te_loc'] - 1  # type: np.ndarray # test samples unseen
-    test_samples_seen_loc = atts_and_splits['te_loc_seen'] - 1  # type: np.ndarray # test samples seen
-
-    if data_type == 'train':
-        features = samples_features[train_samples_loc, :].squeeze()
-        labels = samples_labels[train_samples_loc].squeeze()
-    elif data_type == 'test_unseen':
-        features = samples_features[test_samples_unseen_loc, :].squeeze()
-        labels = samples_labels[test_samples_unseen_loc].squeeze()
-    elif data_type == 'test_seen':
-        features = samples_features[test_samples_seen_loc, :].squeeze()
-        labels = samples_labels[test_samples_seen_loc].squeeze()
-    else:
-        raise ValueError(" should be one of 'train' 'test_unseen' 'test_seen' ")
-
-    class_attributes = load_attributes(dataset_name, attributes_type, features_type_orig, split, )
-
-    return features, labels, class_attributes, class_order
+from misc.project_paths import DATASET_DIR, DATA_BASE_DIR
 
 
 feature_and_labels_cache = {}
@@ -102,9 +47,7 @@ def load_features_and_labels(dataset, features_type, conv_features, tag=''):
     features_type = {'resnet101': 'ResNet_101', 'densenet121': 'densenet_121',
                      'densenet201': 'densenet_201'}.get(features_type, features_type)
 
-    # data_path = f'{BASE_DIR}/cvpr20_DAZLE/data/new_extracted/{dataset}/feature_map_{features_type}_bert_{dataset}{tag}.hdf5'
-    data_path = f'{BASE_DIR}/cvpr20_DAZLE/data/{dataset}/feature_map_{features_type}_bert_{dataset}{tag}.hdf5'
-    # data_path = f'{BASE_DIR}/features_compare/{dataset}/feature_map_{features_type}_bert_{dataset}_old.hdf5'
+    data_path = f'{DATA_BASE_DIR}/precomputed_features/{dataset}/feature_map_{features_type}_bert_{dataset}{tag}.hdf5'
     print(f'loaded features from: {data_path}')
     fl = feature_and_labels_cache.get(data_path, None)
     if fl is None:
@@ -115,7 +58,6 @@ def load_features_and_labels(dataset, features_type, conv_features, tag=''):
     else:
         print('found them in cache already! :)')
         features, labels = fl
-        print(features[0, 0, 0, 0])
     return features, np.squeeze(labels)
 
 
@@ -145,14 +87,14 @@ def load_attributes(dataset_name, attributes_type, features_type=None, split='PS
 
 
 def load_xlsa17_img_paths(dataset_name):
-    data_path = f'../dataset/xlsa17/data/{dataset_name}/res101.mat'
+    data_path = f'{DATA_BASE_DIR}/xlsa17/data/{dataset_name}/res101.mat'
     data = loadmat(data_path)
     samples, labels = data['image_files'], data['labels'] - 1  # matlab to python
     return samples, labels
 
 
 def norm_img_paths(dataset_name, image_files_paths):
-    img_dir = f'../dataset/{dataset_name}/'
+    img_dir = f'{DATA_BASE_DIR}/{dataset_name}/'
 
     def convert_path(image_files, img_dir):
         new_image_files = []
@@ -173,7 +115,7 @@ def norm_img_paths(dataset_name, image_files_paths):
 
 
 def load_splits_locs(dataset_name):
-    splits_locs_path = f'../dataset/split_info/{dataset_name}_split_info.pkl'
+    splits_locs_path = f'{DATA_BASE_DIR}/split_info/{dataset_name}_split_info.pkl'
     splits_locs = load_pickle(splits_locs_path)
     return splits_locs
 
@@ -188,21 +130,18 @@ def load_xlsa17(dataset: str, data_subset: str, features_type: str = 'resnet101'
     :return:
     """
 
-    splits_locs_path = f'../dataset/split_info/{dataset}_split_info.pkl'
+    splits_locs_path = f'{DATA_BASE_DIR}/split_info/{dataset}_split_info.pkl'
     splits_locs = load_pickle(splits_locs_path)
 
-    att_path = f'../dataset/xlsa17/data/{dataset}/att_splits.mat'
+    att_path = f'{DATA_BASE_DIR}/xlsa17/data/{dataset}/att_splits.mat'
     if os.path.isfile(att_path):
         atts_and_splits = loadmat(att_path)
 
         class_attributes = atts_and_splits['original_att']
-        # class_attributes = atts_and_splits['att']
         if dataset.find('SUN') == -1 and dataset.find('AWA2') == -1:
             class_attributes = class_attributes / 100
         if 'AWA2' in dataset:
             class_attributes[class_attributes < 0] = 0
-        # if features_type is None:
-        #     return class_attributes.T
 
     else:
         class_attributes = np.zeros([1, 1])
@@ -280,19 +219,18 @@ def split_train_val_xlsa17(dataset_name: str, split_id: int, X: np.ndarray, Y: n
     return X[train_loc, :], Y[train_loc], X[val_loc, :], Y[val_loc]
 
 
-def load_attribute_descriptors(attribute_desc_type='bert', dataset='CUB', cwd_ppath='../', pickle_path=None):
+def load_attribute_descriptors(attribute_desc_type='bert', dataset='CUB', pickle_path=None):
     if not pickle_path:
-        pickle_path = os.path.join(cwd_ppath, f'cvpr20_DAZLE/w2v/{dataset}_attribute_{attribute_desc_type}.pkl')
+        pickle_path = os.path.join(DATA_BASE_DIR, f'w2v/{dataset}_attribute_{attribute_desc_type}.pkl')
     with open(pickle_path, 'rb') as f:
         w2v_att = pickle.load(f)
     print(f'loaded w2v from {pickle_path}')
     return w2v_att
 
 
-def save_attribute_descriptors(attribute_desc, attribute_desc_type='bert', dataset='CUB', cwd_ppath='../',
-                               pickle_path=None):
+def save_attribute_descriptors(attribute_desc, attribute_desc_type='bert', dataset='CUB', pickle_path=None):
     if not pickle_path:
-        pickle_path = os.path.join(cwd_ppath, f'cvpr20_DAZLE/w2v/{dataset}_attribute_{attribute_desc_type}.pkl')
+        pickle_path = os.path.join(DATA_BASE_DIR, f'w2v/{dataset}_attribute_{attribute_desc_type}.pkl')
     save_pickle(pickle_path, attribute_desc)
     print(f'saved attributes at {pickle_path}')
 

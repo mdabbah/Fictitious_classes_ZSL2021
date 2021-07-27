@@ -11,7 +11,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import Dataset, WeightedRandomSampler, BatchSampler
 from torchvision.utils import save_image
 
-from ManifoldCutMixBatchSampler import ManifoldMixBatchSampler
+from misc.ManifoldCutMixBatchSampler import ManifoldMixBatchSampler
 from misc.custome_dataset import CustomedDataset, get_base_transforms
 from misc.cutmix import CutMix
 from misc.data_loader import ZSLDatasetEmbeddings
@@ -53,8 +53,7 @@ def model_embed(model, test_subset_loader, device):
 
         test_labels.append(batch_labels)
         test_embeddings.append(outputs)
-        # if len(test_labels)>1:
-        #     break
+
     test_labels = torch.cat(test_labels).detach().cpu().numpy()
     if isinstance(test_embeddings[0], torch.Tensor):
         test_embeddings = torch.cat(test_embeddings, dim=0).detach().cpu().numpy()
@@ -122,7 +121,6 @@ def calc_accuracy_dict_output(dicts, labels, scores_key):
 
 
 def calc_accuracy(scores, labels):
-    # print(f'num true samples: {len(labels)}')
     if isinstance(scores, list):
         scores = torch.cat(scores).detach().cpu().numpy()
     predictions = np.argmax(scores, axis=-1)
@@ -149,7 +147,6 @@ def calc_accuracy_wfake(scores, labels, fake_classes_start):
     labels = labels[true_samples]
     acc_on_true = calc_accuracy(scores, labels)['main_metric']
 
-    # print(f'num true samples: {len(labels)}')
     return {'main_metric': acc_on_true, 'acc_on_all': acc_on_all, 'test_acc': acc_on_true}
 
 
