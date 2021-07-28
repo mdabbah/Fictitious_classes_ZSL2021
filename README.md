@@ -2,7 +2,7 @@
 
 Code accompanying the paper Using Fictitious Class Representations to Boost Discriminative Zero-Shot Learners.
 <br> authors:
-<br>   Mohammed Dabbah , Ran El-Yaniv
+<br>   Mohammed Dabbah , Ran El-Yaniv.
 <br>   Department of Computer Science
   Technion – Israel Institute of Technology
 <br>   Haifa, Israel 
@@ -54,8 +54,10 @@ After extraction, the files tree should look like this:
 │ ...
 ```
 
-You can download the precomputed features from diffrenet archtictures and diffrerent layers used in our experiments from: <insert karpef link>
-or you can use the feature extraction script found at `./main_code/feature_extraction.py`
+You can download the precomputed features from diffrenet archtictures and diffrerent layers used in our experiments from:
+<insert karpef link>.
+  
+Or you can use the feature extraction script found at `./main_code/feature_extraction.py`
 use 
 ```
 python3 ./main_code/feature_extraction.py -h 
