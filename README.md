@@ -29,33 +29,34 @@ and extract them in <b> dataset </b> directory.
 After extraction, the files tree should look like this:
 
 ```
-.
-├── AWA2
-│   ├── AwA2-base
-│   └── AwA2-data
-├── CUB
-│   ├── images
-│   ├── parts
-│   ├── ...
-│
-├── SUN
-│   ├── LabelMeToolbox
-│   ├── LabelMeToolbox.zip
-│   └── needed_images
-│		├── a
-│		├── b
-│		├── ...
-│
-├──  xlsa17
-│    ├── code
-│    ├── data
-│    ├── ...
-│
-│ ...
+./dataset
+  ├── AWA2
+  │   ├── AwA2-base
+  │   └── AwA2-data
+  ├── CUB
+  │   ├── images
+  │   ├── parts
+  │   ├── ...
+  │
+  ├── SUN
+  │   ├── LabelMeToolbox
+  │   ├── LabelMeToolbox.zip
+  │   └── needed_images
+  │		├── a
+  │		├── b
+  │		├── ...
+  │
+  ├──  xlsa17
+  │    ├── code
+  │    ├── data
+  │    ├── ...
+  │
+  │ ...
 ```
 
 You can download the precomputed features from diffrenet archtictures and diffrerent layers used in our experiments from:
-<insert karpef link>.
+<br> https://karpef.cs.technion.ac.il/index.php/s/bAo3SogpYwKBefb.
+<br> If you choose to do so please put them under `./dataset/precomputed_features/<dataset-name>/`.
   
 Or you can use the feature extraction script found at `./main_code/feature_extraction.py`
 use 
